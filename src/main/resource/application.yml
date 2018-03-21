@@ -1,0 +1,8 @@
+### Spring properties
+# Service registers under this name
+spring:
+  application:
+    name: generate-POJO
+
+
+
