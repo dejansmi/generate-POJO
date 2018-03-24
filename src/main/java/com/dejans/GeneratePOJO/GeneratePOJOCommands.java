@@ -38,18 +38,18 @@ public class GeneratePOJOCommands {
         private String item;
         private String type;
 
-        private Items (String item, String type) {
+        private Items(String item, String type) {
             this.item = item;
             this.type = type;
         }
 
-		public String getItem() {
-			return item;
-		}
+        public String getItem() {
+            return item;
+        }
 
-		public String getType() {
-			return type;
-		}
+        public String getType() {
+            return type;
+        }
 
     }
 
@@ -76,7 +76,7 @@ public class GeneratePOJOCommands {
         this.baseDirProject = baseDir + fS + "source" + fS + nameProject;
         this.baseDirTemplate = baseDir + fS + "generate-POJO-template";
         this.baseDirPOJOFiles = this.baseDirProject + fS + "src" + fS + "main" + fS + "java" + fS + "com" + fS
-                + "dejans" + fS + name;
+                + "dejans" + fS +  name.toLowerCase();
         this.baseDirModelFiles = baseDir + fS + "source" + fS + nameProject + fS + "Files";
     }
 
@@ -101,7 +101,6 @@ public class GeneratePOJOCommands {
         cfg.setLogTemplateExceptions(false);
         cfg.setWrapUncheckedExceptions(true);
 
-
         String obj = new String();
         obj = modelTree.nextObject(obj);
         while (obj != null) {
@@ -109,10 +108,9 @@ public class GeneratePOJOCommands {
             System.out.println(obj);
             String modelType = modelTree.getModelsType(obj);
             if (modelType.equals("object")) {
-                generatePOJOObject(modelTree, obj, cfg);
-
-            } else if (modelType.equals("List") || modelType.equals("Array")) {
-
+                generatePOJOObject("classTempObject.java.ftl", modelTree, obj, cfg);
+            } else if (modelType.equals("list") || modelType.equals("array")) {
+                generatePOJOObject("classTempList.java.ftl", modelTree, obj, cfg);
             }
             obj = modelTree.nextObject(obj);
         }
@@ -152,13 +150,15 @@ public class GeneratePOJOCommands {
         */
     }
 
-    private void generatePOJOObject(ModelDefinitionTree modelTree, String obj, Configuration cfg) {
+    private void generatePOJOObject(String fileFtlTemplate, ModelDefinitionTree modelTree, String obj,
+            Configuration cfg) {
         String item = null;
         List<Items> items = new ArrayList<Items>();
+        List<Items> primaryKeys = new ArrayList<Items>();
         try {
-            File fileTemp = new File(baseDirTemplate, "classTempObject.java.ftl");
+            File fileTemp = new File(baseDirTemplate, fileFtlTemplate);
             Template temp = cfg.getTemplate(fileTemp.getName());
-                File file = new File(baseDirPOJOFiles + fS + obj + ".java");
+            File file = new File(baseDirPOJOFiles + fS + obj + ".java");
 
             Map root = new HashMap();
             root.put("basedir", "${basedir}");
@@ -170,11 +170,25 @@ public class GeneratePOJOCommands {
             while (item != null) {
                 System.out.println(item);
                 String type = modelTree.getItemJavaType(obj, item);
-                Items itemT = new Items (item, type);
+                Items itemT = new Items(item, type);
                 items.add(itemT);
                 item = modelTree.nextItem(obj, item);
             }
-            root.put("items",items);
+            root.put("items", items);
+            String objectOfList = modelTree.getObjectOfList(obj);
+            root.put("objectOfList", objectOfList);
+            int intNum = 1;
+            item = null;
+            item = modelTree.nextPrimaryKey(obj, intNum);
+            while (item != null) {
+                System.out.println(item);
+                String type = modelTree.getItemJavaType(obj, item);
+                Items itemT = new Items(item, type);
+                primaryKeys.add(itemT);
+                intNum ++;
+                item = modelTree.nextPrimaryKey(obj, intNum);
+            }
+            root.put("primaryKeys",primaryKeys);
 
             BufferedWriter out = new BufferedWriter(new FileWriter(file, false));
             try {
